@@ -35,12 +35,12 @@
             color: #ffcc00;
         }
         .button {
-            padding: 12px 25px;
-            margin: 10px;
+            padding: 12px 20px;
+            margin: 5px;
             background: linear-gradient(90deg, #ff0000, #ff6600);
             border: none;
             color: white;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
             border-radius: 10px;
             transition: 0.3s;
@@ -73,20 +73,27 @@
         }
         .popup {
             display: none;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
             padding: 20px;
             border-radius: 10px;
-            text-align: center;
-            color: white;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            z-index: 1000;
         }
-        .popup img {
-            width: 120px;
-            height: auto;
+        .popup button {
+            background-color: #ffcc00;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .popup button:hover {
+            background-color: #ff6600;
         }
         .links {
             position: fixed;
@@ -117,23 +124,36 @@
     </style>
     <script>
         let userChoices = [];
+        let historicalResults = [
+            '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐉 Dragon!',
+            '🐉 Dragon!', '🐯 Tiger!', '🐉 Dragon!', '🐉 Dragon!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!',
+            '🐉 Dragon!', '🐉 Dragon!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐉 Dragon!', '🐉 Dragon!',
+            '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🏳️ Tie!', '🐉 Dragon!',
+            '🐉 Dragon!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐉 Dragon!',
+            '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐉 Dragon!',
+            '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐉 Dragon!',
+            '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐯 Tiger!', '🐯 Tiger!', '🐉 Dragon!', '🐉 Dragon!'
+        ];
+
         function selectChoice(choice) {
             if (userChoices.length < 5) {
                 userChoices.push(choice);
                 updateChoices();
             }
         }
+
         function removeLastChoice() {
             if (userChoices.length > 0) {
                 userChoices.pop();
                 updateChoices();
             }
         }
+
         function updateChoices() {
             const circles = document.querySelectorAll('.circle');
             circles.forEach((circle, index) => {
                 if (userChoices[index]) {
-                    circle.innerText = userChoices[index] === '🐉 Dragon' ? '🐉' : '🐯';
+                    circle.innerText = userChoices[index];
                     circle.classList.add('filled');
                 } else {
                     circle.innerText = '';
@@ -141,31 +161,68 @@
                 }
             });
         }
+
+        function showPopup(message) {
+            const popup = document.getElementById('popup');
+            popup.innerHTML = `<p>${message}</p>`;
+            popup.style.display = 'block';
+
+            // Close popup automatically after 2 seconds
+            setTimeout(() => {
+                closePopup();
+            }, 2000);
+        }
+
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            popup.style.display = 'none';
+        }
+
+        function analyzeResults() {
+            // Analyze the historical data
+            let patternMatches = [];
+            for (let i = 0; i < historicalResults.length - 5; i++) {
+                if (JSON.stringify(historicalResults.slice(i, i + 5)) === JSON.stringify(userChoices)) {
+                    patternMatches.push(historicalResults[i + 5]);
+                }
+            }
+
+            return patternMatches;
+        }
+
         function getPrediction() {
             if (userChoices.length < 5) {
-                alert("Please select 5 previous results before getting a prediction.");
+                showPopup("❌ Please select 5 previous results before getting a prediction!");
                 return;
             }
-            const outcomes = ['dragon', 'tiger'];
-            const prediction = outcomes[Math.floor(Math.random() * outcomes.length)];
-            showPopup(prediction);
+
+            let patternMatches = analyzeResults();
+            let prediction = 'N/A';
+
+            if (patternMatches.length > 0) {
+                // If there are pattern matches, predict the next result based on them
+                prediction = patternMatches[Math.floor(Math.random() * patternMatches.length)];
+            } else {
+                // If no pattern found, use random probability
+                let dragonCount = historicalResults.filter(r => r.includes('🐉')).length;
+                let tigerCount = historicalResults.filter(r => r.includes('🐯')).length;
+                let tieCount = historicalResults.filter(r => r.includes('🏳️')).length;
+
+                let total = dragonCount + tigerCount + tieCount;
+                let randomNum = Math.random() * total;
+
+                if (randomNum < dragonCount) {
+                    prediction = '🐉 Dragon!';
+                } else if (randomNum < dragonCount + tigerCount) {
+                    prediction = '🐯 Tiger!';
+                } else {
+                    prediction = '🏳️ Tie!';
+                }
+            }
+
+            showPopup(`Prediction: ${prediction}`);
             userChoices = [];
             updateChoices();
-        }
-        function showPopup(result) {
-            const popup = document.createElement("div");
-            popup.classList.add("popup");
-            const popupImage = document.createElement("img");
-            popupImage.src = result === 'dragon' ? 'dragon.png' : 'tiger.png';
-            const popupText = document.createElement("p");
-            popupText.innerText = result === 'dragon' ? '🐉 Dragon Wins!' : '🐯 Tiger Wins!';
-            popup.appendChild(popupImage);
-            popup.appendChild(popupText);
-            document.body.appendChild(popup);
-            popup.style.display = "block";
-            setTimeout(() => {
-                popup.remove();
-            }, 2000);
         }
     </script>
 </head>
@@ -181,16 +238,18 @@
             <div class="circle"></div>
         </div>
         <div>
-            <button class="button" onclick="selectChoice('🐉 Dragon')">🐉 Dragon</button>
-            <button class="button" onclick="selectChoice('🐯 Tiger')">🐯 Tiger</button>
+            <button class="button" onclick="selectChoice('🐉')">🐉 Dragon!</button>
+            <button class="button" onclick="selectChoice('🐯')">🐯 Tiger!</button>
+            <button class="button" onclick="selectChoice('🏳️')">🏳️ Tie!</button>
             <button class="button" onclick="removeLastChoice()">Remove Last</button>
         </div>
         <button class="button" onclick="getPrediction()">Get Prediction</button>
     </div>
+
+    <div id="popup" class="popup"></div>
     <div class="links">
-        <a href="https://www.earntp.com/m/bci06?scene=&f=w&p=tg&l=en&tp=m124" target="_blank">📌 Game Link</a>
-        <a href="https://telegram.me/+gpt7bMQia4kyMzJl" target="_blank">📢 Telegram Channel</a>
-        <a href="https://telegram.me/+SattebazHelperBot" target="_blank">📞 Customer Support</a>
-    </div>
+        <a href="#">📌 Game Link</a>
+        <a href="#">📢 Telegram Channel</a>
+        <a href="#">📞 Customer Support</a>
 </body>
 </html>
